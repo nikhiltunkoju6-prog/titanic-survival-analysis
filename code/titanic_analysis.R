@@ -1,283 +1,510 @@
 # ============================================================
-# TITANIC PASSENGER SURVIVAL ANALYSIS
-# File: titanic_analysis.R
+# ============================================================
+#
+# Dataset: Titanic Passenger Dataset
+# Input file: titanic.csv
+# Output: 11 PNG visualization files
+#
 # ============================================================
 
-# ------------------------------------------------------------
-# 1. INSTALL / LOAD REQUIRED PACKAGES
-# ------------------------------------------------------------
 
-required_packages <- c(
-  "tidyverse",
-  "ggplot2",
-  "dplyr"
+# ============================================================
+# 1. LOAD REQUIRED LIBRARIES
+# ============================================================
+
+library(ggplot2)
+library(dplyr)
+
+
+# ============================================================
+# 2. LOAD DATASET
+# ============================================================
+
+data <- read.csv("titanic.csv")
+
+# View first few rows
+head(data)
+
+# Check structure
+str(data)
+
+# Check missing values
+colSums(is.na(data))
+
+
+# ============================================================
+# 3. BASIC DATA PREPARATION
+# ============================================================
+
+# Convert important categorical variables to factors
+data$Survived <- as.numeric(data$Survived)
+
+data$Pclass <- factor(
+  data$Pclass,
+  levels = c(1, 2, 3)
 )
 
-for (package in required_packages) {
-  if (!require(package, character.only = TRUE)) {
-    install.packages(package)
-    library(package, character.only = TRUE)
-  }
-}
+data$Sex <- factor(data$Sex)
 
-# ------------------------------------------------------------
-# 2. CREATE OUTPUT FOLDER
-# ------------------------------------------------------------
+data$Embarked <- factor(data$Embarked)
 
-if (!dir.exists("plots")) {
-  dir.create("plots")
-}
 
-# ------------------------------------------------------------
-# 3. LOAD DATASET
-# ------------------------------------------------------------
+# ============================================================
+# 3.1 CREATE FAMILY SIZE
+# ============================================================
 
-# The original Titanic dataset should be placed in:
-# data/titanic.csv
+data$FamilySize <- data$SibSp + data$Parch + 1
 
-titanic <- read.csv(
-  "data/titanic.csv",
-  stringsAsFactors = FALSE
-)
 
-# ------------------------------------------------------------
-# 4. STANDARDIZE COLUMN NAMES
-# ------------------------------------------------------------
+# ============================================================
+# 3.2 CREATE FAMILY TYPE
+# ============================================================
 
-names(titanic) <- tolower(names(titanic))
-names(titanic) <- gsub("\\.", "_", names(titanic))
-names(titanic) <- gsub(" ", "_", names(titanic))
-
-# ------------------------------------------------------------
-# 5. CHECK DATASET
-# ------------------------------------------------------------
-
-cat("========================================\n")
-cat("TITANIC DATASET INFORMATION\n")
-cat("========================================\n")
-
-cat("Number of rows:", nrow(titanic), "\n")
-cat("Number of columns:", ncol(titanic), "\n\n")
-
-cat("Column names:\n")
-print(names(titanic))
-
-cat("\nFirst six rows:\n")
-print(head(titanic))
-
-cat("\nSummary:\n")
-print(summary(titanic))
-
-cat("\nMissing values:\n")
-print(colSums(is.na(titanic)))
-
-# ------------------------------------------------------------
-# 6. IDENTIFY COMMON TITANIC COLUMN NAMES
-# ------------------------------------------------------------
-
-# This section allows the script to work with common versions
-# of the Titanic dataset.
-
-find_column <- function(possible_names) {
-  available <- names(titanic)
-  match <- possible_names[possible_names %in% available]
-  
-  if (length(match) > 0) {
-    return(match[1])
-  }
-  
-  return(NA)
-}
-
-survived_col <- find_column(
-  c("survived", "survival", "survival_status")
-)
-
-sex_col <- find_column(
-  c("sex", "gender")
-)
-
-pclass_col <- find_column(
-  c("pclass", "passenger_class", "class")
-)
-
-age_col <- find_column(
-  c("age")
-)
-
-fare_col <- find_column(
-  c("fare", "ticket_fare")
-)
-
-sibsp_col <- find_column(
-  c("sibsp", "siblings_spouses")
-)
-
-parch_col <- find_column(
-  c("parch", "parents_children")
-)
-
-embarked_col <- find_column(
-  c("embarked", "embarkation_port", "port")
-)
-
-# ------------------------------------------------------------
-# 7. CHECK REQUIRED COLUMNS
-# ------------------------------------------------------------
-
-required_columns <- c(
-  survived_col,
-  sex_col,
-  pclass_col,
-  age_col,
-  fare_col
-)
-
-if (any(is.na(required_columns))) {
-  
-  cat("\nERROR: Required columns could not be found.\n")
-  cat("Available columns are:\n")
-  print(names(titanic))
-  
-  stop(
-    "Please check the column names in data/titanic.csv."
+data$FamilyType <- ifelse(
+  data$FamilySize == 1,
+  "Alone",
+  ifelse(
+    data$FamilySize <= 4,
+    "Small Family",
+    "Large Family"
   )
-}
-
-# ------------------------------------------------------------
-# 8. RENAME IMPORTANT COLUMNS TO STANDARD NAMES
-# ------------------------------------------------------------
-
-titanic <- titanic %>%
-  rename(
-    survived = all_of(survived_col),
-    sex = all_of(sex_col),
-    pclass = all_of(pclass_col),
-    age = all_of(age_col),
-    fare = all_of(fare_col)
-  )
-
-if (!is.na(sibsp_col)) {
-  titanic <- titanic %>%
-    rename(sibsp = all_of(sibsp_col))
-}
-
-if (!is.na(parch_col)) {
-  titanic <- titanic %>%
-    rename(parch = all_of(parch_col))
-}
-
-if (!is.na(embarked_col)) {
-  titanic <- titanic %>%
-    rename(embarked = all_of(embarked_col))
-}
-
-# ------------------------------------------------------------
-# 9. CONVERT DATA TYPES
-# ------------------------------------------------------------
-
-titanic$survived <- as.numeric(as.character(titanic$survived))
-titanic$pclass <- as.numeric(as.character(titanic$pclass))
-titanic$age <- as.numeric(as.character(titanic$age))
-titanic$fare <- as.numeric(as.character(titanic$fare))
-
-titanic$sex <- tolower(trimws(as.character(titanic$sex)))
-
-if ("embarked" %in% names(titanic)) {
-  titanic$embarked <- toupper(
-    trimws(as.character(titanic$embarked))
-  )
-}
-
-# ------------------------------------------------------------
-# 10. DATA CLEANING
-# ------------------------------------------------------------
-
-# Remove invalid survival values
-titanic <- titanic %>%
-  filter(survived %in% c(0, 1))
-
-# Remove invalid passenger class values
-titanic <- titanic %>%
-  filter(pclass %in% c(1, 2, 3))
-
-# Replace missing Age values with median age
-# This keeps the observations available for age analysis.
-
-median_age <- median(
-  titanic$age,
-  na.rm = TRUE
 )
 
-titanic$age[is.na(titanic$age)] <- median_age
-
-# Replace missing fare values with median fare
-
-median_fare <- median(
-  titanic$fare,
-  na.rm = TRUE
-)
-
-titanic$fare[is.na(titanic$fare)] <- median_fare
-
-# ------------------------------------------------------------
-# 11. CREATE FAMILY SIZE
-# ------------------------------------------------------------
-
-if ("sibsp" %in% names(titanic) &&
-    "parch" %in% names(titanic)) {
-  
-  titanic$family_size <-
-    titanic$sibsp +
-    titanic$parch +
-    1
-  
-} else {
-  
-  titanic$family_size <- 1
-}
-
-# ------------------------------------------------------------
-# 12. CREATE FAMILY TYPE
-# ------------------------------------------------------------
-
-titanic$family_type <- case_when(
-  
-  titanic$family_size == 1 ~ "Alone",
-  
-  titanic$family_size >= 2 &
-    titanic$family_size <= 4 ~ "Small Family",
-  
-  titanic$family_size >= 5 ~ "Large Family",
-  
-  TRUE ~ "Alone"
-)
-
-# ------------------------------------------------------------
-# 13. CREATE AGE GROUPS
-# ------------------------------------------------------------
-
-titanic$age_group <- case_when(
-  
-  titanic$age <= 12 ~ "Child",
-  
-  titanic$age > 12 &
-    titanic$age <= 19 ~ "Teenager",
-  
-  titanic$age > 19 &
-    titanic$age <= 29 ~ "Young Adult",
-  
-  titanic$age > 29 &
-    titanic$age <= 59 ~ "Adult",
-  
-  titanic$age >= 60 ~ "Senior",
-  
-  TRUE ~ "Adult"
-)
-
-titanic$age_group <- factor(
-  titanic$age_group,
+data$FamilyType <- factor(
+  data$FamilyType,
   levels = c(
+    "Alone",
+    "Small Family",
+    "Large Family"
+  )
+)
+
+
+# ============================================================
+# 3.3 REMOVE MISSING VALUES FOR AGE/Fare VISUALIZATIONS
+# ============================================================
+
+age_data <- data %>%
+  filter(!is.na(Age))
+
+fare_data <- data %>%
+  filter(!is.na(Fare))
+
+
+# ============================================================
+# 3.4 DUPLICATE CHECK
+# ============================================================
+
+duplicate_count <- sum(duplicated(data))
+
+cat("Number of duplicate rows:", duplicate_count, "\n")
+
+
+# ============================================================
+# 4. BASIC SUMMARY STATISTICS
+# ============================================================
+
+# Embarkation counts
+table(data$Embarked)
+
+# Age summary
+summary(data$Age)
+
+# Fare summary
+summary(data$Fare)
+
+# Correlation between Age and Fare
+cor(
+  data$Age,
+  data$Fare,
+  use = "complete.obs"
+)
+
+# Survival table by gender
+table(data$Sex, data$Survived)
+
+# Survival table by passenger class
+table(data$Pclass, data$Survived)
+
+# Survival table by family type
+table(data$FamilyType, data$Survived)
+
+# Overall survival
+table(data$Survived)
+
+
+# ============================================================
+# 5. VISUALIZATION 1
+# OVERALL PASSENGER SURVIVAL
+# Figure 2
+# Output: 01_overall_passenger_survival.png
+# ============================================================
+
+survival_plot <- ggplot(
+  data,
+  aes(x = factor(Survived))
+) +
+  geom_bar() +
+  labs(
+    title = "Titanic Passenger Survival",
+    x = "Survival Status",
+    y = "Number of Passengers"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "0" = "Did Not Survive",
+      "1" = "Survived"
+    )
+  ) +
+  theme_minimal()
+
+print(survival_plot)
+
+ggsave(
+  "01_overall_passenger_survival.png",
+  plot = survival_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 6. VISUALIZATION 2
+# SURVIVAL BY GENDER
+# Figure 3
+# Output: 02_survival_by_gender.png
+# ============================================================
+
+gender_plot <- ggplot(
+  data,
+  aes(
+    x = Sex,
+    fill = factor(Survived)
+  )
+) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Titanic Passenger Survival by Gender",
+    x = "Gender",
+    y = "Number of Passengers",
+    fill = "Survival Status"
+  ) +
+  scale_fill_discrete(
+    labels = c(
+      "0" = "Did Not Survive",
+      "1" = "Survived"
+    )
+  ) +
+  theme_minimal()
+
+print(gender_plot)
+
+ggsave(
+  "02_survival_by_gender.png",
+  plot = gender_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 7. VISUALIZATION 3
+# SURVIVAL BY PASSENGER CLASS
+# Figure 4
+# Output: 03_survival_by_class.png
+# ============================================================
+
+class_plot <- ggplot(
+  data,
+  aes(
+    x = Pclass,
+    fill = factor(Survived)
+  )
+) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Titanic Passenger Survival by Passenger Class",
+    x = "Passenger Class",
+    y = "Number of Passengers",
+    fill = "Survival Status"
+  ) +
+  scale_fill_discrete(
+    labels = c(
+      "0" = "Did Not Survive",
+      "1" = "Survived"
+    )
+  ) +
+  theme_minimal()
+
+print(class_plot)
+
+ggsave(
+  "03_survival_by_class.png",
+  plot = class_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 8. VISUALIZATION 4
+# AGE DISTRIBUTION
+# Figure 5
+# Output: 04_age_distribution.png
+# ============================================================
+
+age_plot <- ggplot(
+  age_data,
+  aes(x = Age)
+) +
+  geom_histogram(
+    bins = 30
+  ) +
+  labs(
+    title = "Age Distribution of Titanic Passengers",
+    x = "Age",
+    y = "Number of Passengers"
+  ) +
+  theme_minimal()
+
+print(age_plot)
+
+ggsave(
+  "04_age_distribution.png",
+  plot = age_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 9. VISUALIZATION 5
+# AGE DISTRIBUTION BY SURVIVAL STATUS
+# Figure 6
+# Output: 05_age_by_survival.png
+# ============================================================
+
+age_survival_plot <- ggplot(
+  age_data,
+  aes(
+    x = factor(Survived),
+    y = Age
+  )
+) +
+  geom_boxplot() +
+  labs(
+    title = "Age Distribution by Survival Status",
+    x = "Survival Status",
+    y = "Age"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "0" = "Did Not Survive",
+      "1" = "Survived"
+    )
+  ) +
+  theme_minimal()
+
+print(age_survival_plot)
+
+ggsave(
+  "05_age_by_survival.png",
+  plot = age_survival_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 10. VISUALIZATION 6
+# TICKET FARE DISTRIBUTION
+# Figure 7
+# Output: 06_fare_distribution.png
+# ============================================================
+
+fare_plot <- ggplot(
+  fare_data,
+  aes(x = Fare)
+) +
+  geom_histogram(
+    bins = 30
+  ) +
+  labs(
+    title = "Distribution of Titanic Ticket Fares",
+    x = "Fare",
+    y = "Number of Passengers"
+  ) +
+  theme_minimal()
+
+print(fare_plot)
+
+ggsave(
+  "06_fare_distribution.png",
+  plot = fare_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 11. VISUALIZATION 7
+# RELATIONSHIP BETWEEN AGE AND FARE
+# Figure 8
+# Output: 07_age_vs_fare.png
+# ============================================================
+
+age_fare_plot <- ggplot(
+  data,
+  aes(
+    x = Age,
+    y = Fare
+  )
+) +
+  geom_point(
+    na.rm = TRUE
+  ) +
+  labs(
+    title = "Relationship Between Age and Ticket Fare",
+    x = "Age",
+    y = "Fare"
+  ) +
+  theme_minimal()
+
+print(age_fare_plot)
+
+ggsave(
+  "07_age_vs_fare.png",
+  plot = age_fare_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 12. VISUALIZATION 8
+# TICKET FARE DISTRIBUTION BY PASSENGER CLASS
+# Figure 9
+# Output: 08_fare_by_class.png
+# ============================================================
+
+fare_class_plot <- ggplot(
+  fare_data,
+  aes(
+    x = Pclass,
+    y = Fare
+  )
+) +
+  geom_boxplot() +
+  labs(
+    title = "Ticket Fare Distribution by Passenger Class",
+    x = "Passenger Class",
+    y = "Fare"
+  ) +
+  theme_minimal()
+
+print(fare_class_plot)
+
+ggsave(
+  "08_fare_by_class.png",
+  plot = fare_class_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 13. VISUALIZATION 9
+# SURVIVAL BY FAMILY TYPE
+# Figure 10
+# Output: 09_survival_by_family_type.png
+# ============================================================
+
+family_plot <- ggplot(
+  data,
+  aes(
+    x = FamilyType,
+    fill = factor(Survived)
+  )
+) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Titanic Passenger Survival by Family Type",
+    x = "Family Type",
+    y = "Number of Passengers",
+    fill = "Survival Status"
+  ) +
+  scale_fill_discrete(
+    labels = c(
+      "0" = "Did Not Survive",
+      "1" = "Survived"
+    )
+  ) +
+  theme_minimal()
+
+print(family_plot)
+
+ggsave(
+  "09_survival_by_family_type.png",
+  plot = family_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 14. VISUALIZATION 10
+# PASSENGERS BY EMBARKATION PORT
+# Figure 11
+# Output: 10_passengers_by_embarkation.png
+# ============================================================
+
+embarked_plot <- ggplot(
+  data,
+  aes(x = Embarked)
+) +
+  geom_bar() +
+  labs(
+    title = "Titanic Passengers by Embarkation Port",
+    x = "Port of Embarkation",
+    y = "Number of Passengers"
+  ) +
+  theme_minimal()
+
+print(embarked_plot)
+
+ggsave(
+  "10_passengers_by_embarkation.png",
+  plot = embarked_plot,
+  width = 7,
+  height = 5,
+  dpi = 300
+)
+
+
+# ============================================================
+# 15. CREATE AGE GROUPS
+# ============================================================
+
+data$AgeGroup <- cut(
+  data$Age,
+  breaks = c(
+    -Inf,
+    12,
+    19,
+    29,
+    59,
+    Inf
+  ),
+  labels = c(
     "Child",
     "Teenager",
     "Young Adult",
@@ -286,542 +513,58 @@ titanic$age_group <- factor(
   )
 )
 
-# ------------------------------------------------------------
-# 14. SAVE CLEANED DATASET
-# ------------------------------------------------------------
-
-write.csv(
-  titanic,
-  "data/titanic_cleaned.csv",
-  row.names = FALSE
-)
-
-cat("\nCleaned dataset saved to:")
-cat(" data/titanic_cleaned.csv\n")
 
 # ============================================================
-# PLOT 1
-# TITANIC PASSENGER SURVIVAL
+# 16. CALCULATE SURVIVAL RATE BY AGE GROUP
 # ============================================================
 
-survival_data <- titanic %>%
-  group_by(survived) %>%
+age_survival <- data %>%
+  filter(!is.na(AgeGroup)) %>%
+  group_by(AgeGroup) %>%
   summarise(
-    passengers = n()
+    SurvivalRate = mean(Survived) * 100
   )
 
-plot1 <- ggplot(
-  survival_data,
-  aes(
-    x = factor(survived),
-    y = passengers
-  )
-) +
-  geom_col(fill = "gray40") +
-  labs(
-    title = "Titanic Passenger Survival",
-    x = "Survival Status",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
+print(age_survival)
 
-print(plot1)
-
-ggsave(
-  "plots/01_titanic_passenger_survival.png",
-  plot1,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
 
 # ============================================================
-# PLOT 2
-# TITANIC SURVIVAL BY GENDER
-# ============================================================
-
-gender_data <- titanic %>%
-  group_by(sex) %>%
-  summarise(
-    passengers = n()
-  )
-
-plot2 <- ggplot(
-  gender_data,
-  aes(
-    x = sex,
-    y = passengers
-  )
-) +
-  geom_col(fill = "gray40") +
-  labs(
-    title = "Titanic Survival by Gender",
-    x = "Gender",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot2)
-
-ggsave(
-  "plots/02_titanic_survival_by_gender.png",
-  plot2,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 3
-# TITANIC SURVIVAL BY PASSENGER CLASS
-# ============================================================
-
-class_data <- titanic %>%
-  group_by(pclass) %>%
-  summarise(
-    passengers = n()
-  )
-
-plot3 <- ggplot(
-  class_data,
-  aes(
-    x = factor(pclass),
-    y = passengers
-  )
-) +
-  geom_col(fill = "gray40") +
-  labs(
-    title = "Titanic Survival by Passenger Class",
-    x = "Passenger Class",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot3)
-
-ggsave(
-  "plots/03_titanic_survival_by_passenger_class.png",
-  plot3,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 4
-# AGE DISTRIBUTION
-# ============================================================
-
-plot4 <- ggplot(
-  titanic,
-  aes(x = age)
-) +
-  geom_histogram(
-    bins = 30,
-    fill = "steelblue",
-    color = "white"
-  ) +
-  labs(
-    title = "Age Distribution of Titanic Passengers",
-    x = "Age",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot4)
-
-ggsave(
-  "plots/04_age_distribution.png",
-  plot4,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 5
-# AGE DISTRIBUTION BY SURVIVAL STATUS
-# ============================================================
-
-plot5 <- ggplot(
-  titanic,
-  aes(
-    x = factor(survived),
-    y = age
-  )
-) +
-  geom_boxplot(
-    fill = "white",
-    color = "gray20"
-  ) +
-  labs(
-    title = "Age Distribution by Survival Status",
-    x = "Survival Status",
-    y = "Age"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot5)
-
-ggsave(
-  "plots/05_age_distribution_by_survival_status.png",
-  plot5,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 6
-# TITANIC TICKET FARE DISTRIBUTION
-# ============================================================
-
-plot6 <- ggplot(
-  titanic,
-  aes(x = fare)
-) +
-  geom_histogram(
-    bins = 30,
-    fill = "darkorange",
-    color = "white"
-  ) +
-  labs(
-    title = "Distribution of Titanic Ticket Fares",
-    x = "Fare",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot6)
-
-ggsave(
-  "plots/06_ticket_fare_distribution.png",
-  plot6,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 7
-# RELATIONSHIP BETWEEN AGE AND TICKET FARE
-# ============================================================
-
-plot7 <- ggplot(
-  titanic,
-  aes(
-    x = age,
-    y = fare
-  )
-) +
-  geom_point(
-    alpha = 0.6,
-    color = "gray30"
-  ) +
-  labs(
-    title = "Relationship Between Age and Ticket Fare",
-    x = "Age",
-    y = "Fare"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot7)
-
-ggsave(
-  "plots/07_age_vs_ticket_fare.png",
-  plot7,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 8
-# TICKET FARE DISTRIBUTION BY PASSENGER CLASS
-# ============================================================
-
-plot8 <- ggplot(
-  titanic,
-  aes(
-    x = factor(pclass),
-    y = fare
-  )
-) +
-  geom_boxplot(
-    fill = "white",
-    color = "gray20"
-  ) +
-  labs(
-    title = "Ticket Fare Distribution by Passenger Class",
-    x = "Passenger Class",
-    y = "Fare"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot8)
-
-ggsave(
-  "plots/08_ticket_fare_by_passenger_class.png",
-  plot8,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 9
-# TITANIC SURVIVAL BY FAMILY TYPE
-# ============================================================
-
-family_data <- titanic %>%
-  group_by(family_type) %>%
-  summarise(
-    passengers = n()
-  )
-
-family_data$family_type <- factor(
-  family_data$family_type,
-  levels = c(
-    "Alone",
-    "Small Family",
-    "Large Family"
-  )
-)
-
-plot9 <- ggplot(
-  family_data,
-  aes(
-    x = family_type,
-    y = passengers
-  )
-) +
-  geom_col(fill = "gray40") +
-  labs(
-    title = "Titanic Survival by Family Type",
-    x = "Family Type",
-    y = "Number of Passengers"
-  ) +
-  theme_minimal(base_size = 14)
-
-print(plot9)
-
-ggsave(
-  "plots/09_titanic_survival_by_family_type.png",
-  plot9,
-  width = 10,
-  height = 6,
-  dpi = 300
-)
-
-# ============================================================
-# PLOT 10
-# TITANIC PASSENGERS BY EMBARKATION PORT
-# ============================================================
-
-if ("embarked" %in% names(titanic)) {
-  
-  embarkation_data <- titanic %>%
-    filter(!is.na(embarked), embarked != "") %>%
-    group_by(embarked) %>%
-    summarise(
-      passengers = n()
-    )
-  
-  plot10 <- ggplot(
-    embarkation_data,
-    aes(
-      x = embarked,
-      y = passengers
-    )
-  ) +
-    geom_col(fill = "gray40") +
-    labs(
-      title = "Titanic Passengers by Embarkation Port",
-      x = "Port of Embarkation",
-      y = "Number of Passengers"
-    ) +
-    theme_minimal(base_size = 14)
-  
-  print(plot10)
-  
-  ggsave(
-    "plots/10_titanic_passengers_by_embarkation_port.png",
-    plot10,
-    width = 10,
-    height = 6,
-    dpi = 300
-  )
-}
-
-# ============================================================
-# PLOT 11
+# 17. VISUALIZATION 11
 # SURVIVAL RATE ACROSS AGE GROUPS
+# Figure 12
+# Output: 11_survival_by_age_group.png
 # ============================================================
 
-age_survival <- titanic %>%
-  group_by(age_group) %>%
-  summarise(
-    survival_rate = mean(survived, na.rm = TRUE) * 100,
-    passengers = n()
-  )
-
-plot11 <- ggplot(
+age_group_plot <- ggplot(
   age_survival,
   aes(
-    x = age_group,
-    y = survival_rate,
+    x = AgeGroup,
+    y = SurvivalRate,
     group = 1
   )
 ) +
-  geom_line(
-    color = "black",
-    linewidth = 0.8
-  ) +
-  geom_point(
-    color = "black",
-    size = 4
-  ) +
+  geom_line() +
+  geom_point() +
   labs(
     title = "Survival Rate Across Age Groups",
     x = "Age Group",
     y = "Survival Rate (%)"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal()
 
-print(plot11)
+print(age_group_plot)
 
 ggsave(
-  "plots/11_survival_rate_across_age_groups.png",
-  plot11,
-  width = 10,
-  height = 6,
+  "11_survival_by_age_group.png",
+  plot = age_group_plot,
+  width = 7,
+  height = 5,
   dpi = 300
 )
 
-# ============================================================
-# 15. ADDITIONAL STATISTICAL SUMMARY
-# ============================================================
-
-cat("\n")
-cat("========================================\n")
-cat("ANALYSIS RESULTS\n")
-cat("========================================\n")
-
-# Overall survival rate
-
-overall_survival <- mean(
-  titanic$survived,
-  na.rm = TRUE
-) * 100
-
-cat(
-  "\nOverall survival rate:",
-  round(overall_survival, 2),
-  "%\n"
-)
-
-# Survival by gender
-
-gender_survival <- titanic %>%
-  group_by(sex) %>%
-  summarise(
-    passengers = n(),
-    survivors = sum(survived),
-    survival_rate = mean(survived) * 100
-  )
-
-cat("\nSurvival by gender:\n")
-print(gender_survival)
-
-# Survival by passenger class
-
-class_survival <- titanic %>%
-  group_by(pclass) %>%
-  summarise(
-    passengers = n(),
-    survivors = sum(survived),
-    survival_rate = mean(survived) * 100
-  )
-
-cat("\nSurvival by passenger class:\n")
-print(class_survival)
-
-# Survival by age group
-
-cat("\nSurvival by age group:\n")
-print(age_survival)
-
-# Survival by family type
-
-family_survival <- titanic %>%
-  group_by(family_type) %>%
-  summarise(
-    passengers = n(),
-    survivors = sum(survived),
-    survival_rate = mean(survived) * 100
-  )
-
-cat("\nSurvival by family type:\n")
-print(family_survival)
-
-# ------------------------------------------------------------
-# 16. SAVE STATISTICAL SUMMARIES
-# ------------------------------------------------------------
-
-write.csv(
-  gender_survival,
-  "gender_survival_summary.csv",
-  row.names = FALSE
-)
-
-write.csv(
-  class_survival,
-  "class_survival_summary.csv",
-  row.names = FALSE
-)
-
-write.csv(
-  age_survival,
-  "age_group_survival_summary.csv",
-  row.names = FALSE
-)
-
-write.csv(
-  family_survival,
-  "family_survival_summary.csv",
-  row.names = FALSE
-)
 
 # ============================================================
-# 17. FINAL MESSAGE
+# 18. FINAL OUTPUT
 # ============================================================
 
-cat("\n")
-cat("========================================\n")
-cat("ANALYSIS COMPLETED SUCCESSFULLY\n")
-cat("========================================\n")
-
-cat("\nGenerated plots:\n")
-
-cat("01_titanic_passenger_survival.png\n")
-cat("02_titanic_survival_by_gender.png\n")
-cat("03_titanic_survival_by_passenger_class.png\n")
-cat("04_age_distribution.png\n")
-cat("05_age_distribution_by_survival_status.png\n")
-cat("06_ticket_fare_distribution.png\n")
-cat("07_age_vs_ticket_fare.png\n")
-cat("08_ticket_fare_by_passenger_class.png\n")
-cat("09_titanic_survival_by_family_type.png\n")
-cat("10_titanic_passengers_by_embarkation_port.png\n")
-cat("11_survival_rate_across_age_groups.png\n")
-
-cat("\nCleaned dataset:\n")
-cat("data/titanic_cleaned.csv\n")
-
-cat("\nSummary files:\n")
-cat("gender_survival_summary.csv\n")
-cat("class_survival_summary.csv\n")
-cat("age_group_survival_summary.csv\n")
-cat("family_survival_summary.csv\n")
-
-cat("\nProject analysis finished.\n")
+print("All 11 visualizations have been generated successfully.")
