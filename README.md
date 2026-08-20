@@ -1,74 +1,142 @@
-# Titanic Passenger Survival Analysis
+# Titanic Data Visualization and Insight Communication Using R
 
 ## Project Overview
 
-This project analyzes the Titanic passenger dataset to understand the factors associated with passenger survival.
+This project analyzes the Titanic passenger dataset using the R programming language and RStudio.
 
-The analysis examines passenger survival status, gender, passenger class, age, ticket fare, family type, and port of embarkation. Exploratory data analysis and visualization techniques are used to identify important patterns and relationships within the dataset.
+The main objective is to transform the Titanic passenger data into meaningful visual information and identify important patterns related to passenger survival, gender, passenger class, age, ticket fare, family structure, and embarkation port.
+
+The project uses descriptive data analysis and visualization techniques including bar charts, histograms, boxplots, and scatter plots.
+
+This project was completed as part of the Virtual R Data Analyst Internship.
+
+---
+
+## Internship Information
+
+- **Program:** Virtual R Data Analyst Internship
+- **Task:** Data Visualization and Insight Communication using R
+- **Internship Duration:** 23 July 2026 – 23 August 2026
+- **Submitted By:** Nikhil Tunkoju
+- **Submission Date:** 20 August 2026
+
+---
 
 ## Objectives
 
 The main objectives of this project are:
 
-- Analyze the overall survival status of Titanic passengers.
-- Compare passenger counts by gender.
-- Analyze passenger distribution across passenger classes.
-- Study the age distribution of passengers.
-- Compare age distribution by survival status.
-- Analyze the distribution of ticket fares.
-- Examine the relationship between age and ticket fare.
-- Analyze ticket fares across passenger classes.
-- Study survival patterns by family type.
-- Analyze passengers by embarkation port.
+- Load and prepare the Titanic dataset in RStudio.
+- Understand the important variables used in the analysis.
+- Create informative visualizations using R.
+- Select appropriate chart types for different types of data.
+- Analyze passenger survival patterns.
+- Compare survival patterns across gender and passenger class.
+- Examine passenger age and ticket fare distributions.
+- Analyze the relationship between passenger age and ticket fare.
+- Examine passenger distribution according to family structure.
+- Analyze passenger distribution by embarkation port.
 - Examine survival rates across different age groups.
+- Communicate analytical findings using clear visualizations.
+
+---
 
 ## Dataset
 
-The project uses the Titanic passenger dataset containing information about passengers and their characteristics, including survival status, gender, passenger class, age, ticket fare, family relationships, and embarkation port.
+The Titanic dataset contains demographic and travel information about passengers aboard the RMS Titanic.
 
-## Analysis Performed
+### Dataset Information
 
-The project includes exploratory data analysis and graphical visualization.
+| Attribute | Value |
+|---|---|
+| Dataset Name | Titanic Dataset |
+| Number of Rows | 891 |
+| Number of Columns | 12 |
+| Dataset Type | Structured CSV File |
+| Missing Values | Present |
 
-The following plots were generated:
+### Numerical Variables
 
-1. Titanic Passenger Survival
-2. Titanic Survival by Gender
-3. Titanic Survival by Passenger Class
-4. Age Distribution of Titanic Passengers
-5. Age Distribution by Survival Status
-6. Distribution of Titanic Ticket Fares
-7. Relationship Between Age and Ticket Fare
-8. Ticket Fare Distribution by Passenger Class
-9. Titanic Survival by Family Type
-10. Titanic Passengers by Embarkation Port
-11. Survival Rate Across Age Groups
+- PassengerId
+- Age
+- Fare
+- SibSp
+- Parch
 
-## Key Findings
+### Categorical Variables
 
-The analysis shows that survival was not evenly distributed among passengers. Gender, passenger class, age, family situation, and other passenger characteristics show noticeable differences in the dataset.
+- Survived
+- Pclass
+- Name
+- Sex
+- Ticket
+- Cabin
+- Embarked
 
-Female passengers represented fewer passengers than male passengers, while the passenger class distribution shows that third-class passengers formed the largest group.
+The dataset was obtained from the Kaggle Titanic dataset repository.
 
-The age distribution is concentrated mainly among young and middle-aged passengers. Ticket fares are strongly concentrated at lower values, with a smaller number of passengers paying substantially higher fares.
+---
 
-The age-group analysis also shows differences in survival rates between children, teenagers, young adults, adults, and seniors.
+## Variables Used in the Analysis
 
-## Technologies Used
+| Variable | Description | Purpose |
+|---|---|---|
+| Survived | Passenger survival status | Main outcome variable |
+| Sex | Passenger gender | Gender analysis |
+| Pclass | Passenger class | Class comparison |
+| Age | Passenger age | Age distribution |
+| Fare | Ticket fare | Fare distribution |
+| SibSp | Siblings/spouses aboard | Family classification |
+| Parch | Parents/children aboard | Family classification |
+| Embarked | Port of embarkation | Passenger distribution |
+| FamilySize | Derived family size | Family analysis |
+| FamilyType | Derived family category | Family analysis |
+| AgeGroup | Derived age category | Age-group survival analysis |
 
-- Python
-- Pandas
-- Matplotlib
-- Seaborn
-- Jupyter Notebook / Python
-- GitHub
+---
 
-## Project Structure
+## Tools and Technologies
 
-```text
-titanic-survival-analysis/
-├── README.md
-├── data/
-├── code/
-├── plots/
-└── requirements.txt
+### Programming Language
+
+- R
+
+### Development Environment
+
+- RStudio
+
+### R Packages
+
+- `ggplot2`
+- `dplyr`
+
+### Other Tools
+
+- Microsoft Word for report documentation
+- GitHub for project version control and submission
+
+---
+
+## Project Workflow
+
+The project follows these main steps:
+
+1. Load the Titanic dataset.
+2. Inspect the dataset structure.
+3. Check missing values.
+4. Prepare categorical variables.
+5. Create derived variables.
+6. Calculate basic summary statistics.
+7. Create visualizations.
+8. Save plots as PNG files.
+9. Interpret the visualizations.
+10. Identify key findings and limitations.
+
+---
+
+## Data Preparation
+
+The dataset was loaded into R using:
+
+```r
+data <- read.csv("titanic.csv")
