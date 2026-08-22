@@ -133,6 +133,7 @@ The project follows these main steps:
 10. Identify key findings and limitations.
 
 ---
+
 ## Data Preparation
 
 The dataset was loaded into R using:
